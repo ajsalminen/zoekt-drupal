@@ -174,6 +174,24 @@ func IndexGitRepo(opts build.Options, branchPrefix string, branches []string, su
 
 	var names []string
 
+
+	// all branches
+	branchPrefix = ""
+	iter, err := repo.NewReferenceIterator()
+	ref, err := iter.Next()
+	branches = make([]string, 0, 10) // 10 is max cap.
+	for err == nil {
+		if ref.IsBranch() && ref.Name() != "refs/heads/master" {
+			n := len(branches)
+			branches = append(branches, ref.Name())
+			log.Printf("Ref: (%s)",branches[n])
+		}
+		ref, err = iter.Next()
+	}
+
+	// all branches
+
+
 	// branch => name => sha1
 	data := map[string]map[string]git.Oid{}
 	repos := map[git.Oid]*git.Repository{}
