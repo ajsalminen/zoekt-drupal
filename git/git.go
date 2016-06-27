@@ -23,6 +23,7 @@ import (
 	"sort"
 	"strings"
 	"time"
+	"regexp"
 
 	"github.com/google/zoekt"
 	"github.com/google/zoekt/build"
@@ -41,8 +42,8 @@ func RepoModTime(dir string) (time.Time, error) {
 				}
 				return nil
 			}); err != nil {
-			return last, err
-		}
+				return last, err
+			}
 	}
 
 	// git gc compresses refs into the following file:
@@ -177,16 +178,22 @@ func IndexGitRepo(opts build.Options, branchPrefix string, branches []string, su
 
 	// all branches
 	branchPrefix = ""
+	var releaseBranch = regexp.MustCompile(`^refs/heads/([0-9]+\.?)+x-([0-9]+\.?)+\.x$`)
 	iter, err := repo.NewReferenceIterator()
 	ref, err := iter.Next()
 	branches = make([]string, 0, 10) // 10 is max cap.
 	for err == nil {
-		if ref.IsBranch() && ref.Name() != "refs/heads/master" {
+		r := ref.Name()
+		if ref.IsBranch() && r != "refs/heads/master" && releaseBranch.MatchString(r){
 			n := len(branches)
 			branches = append(branches, ref.Name())
 			log.Printf("Ref: (%s)",branches[n])
 		}
 		ref, err = iter.Next()
+	}
+	if len(branches) == 0 {
+		// TODO: Should check that master exists.
+		branches = append(branches, "refs/heads/master")
 	}
 
 	// all branches
